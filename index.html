@@ -10270,7 +10270,7 @@ function toast(msg, warn){ const t = $("toast"); t.textContent = msg; t.classNam
 /* ---------- Kamera ---------- */
 async function startCam(){
   try{
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}, width:{ideal:1280}, height:{ideal:960}}, audio:false});
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}, width:{ideal:1920}, height:{ideal:1440}}, audio:false});
   }catch(e){
     toast("Kamera nicht freigegeben. In den Browser-Einstellungen die Kamera für diese Seite erlauben.", true); return;
   }
@@ -10301,8 +10301,13 @@ async function loop(){
     try{
       if(detector){ const r = await detector.detect(v); if(r.length) text = r[0].rawValue; }
       else{
-        const scale = Math.min(1, 720 / v.videoWidth); canvas.width = v.videoWidth * scale; canvas.height = v.videoHeight * scale;
-        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+        // Nur den Bereich um den weissen Rahmen auswerten, dafür in voller Auflösung (mehr Pixel pro QR-Punkt).
+        // Das Bild ist per object-fit:cover beschnitten → Rahmen in Videopixel umrechnen, 10 % Reserve.
+        const s = Math.max(v.clientWidth / v.videoWidth, v.clientHeight / v.videoHeight);
+        const side = Math.min(v.videoWidth, v.videoHeight, s > 0 ? 0.9 * Math.min(v.clientWidth, v.clientHeight) / s : Infinity);
+        const sx = (v.videoWidth - side) / 2, sy = (v.videoHeight - side) / 2;
+        const out = Math.min(side, 1000); canvas.width = canvas.height = out;
+        ctx.drawImage(v, sx, sy, side, side, 0, 0, out, out);
         const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const r = jsQR(img.data, img.width, img.height, {inversionAttempts:"dontInvert"}); if(r) text = r.data;
       }
